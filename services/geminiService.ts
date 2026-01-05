@@ -2,9 +2,28 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIExtractionResponse, AuthMethod, RelationshipType, ContentType } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// 在瀏覽器環境中安全地獲取 API Key
+// 我們優先嘗試 process.env (Node/Build環境)，如果失敗則嘗試 window.process (瀏覽器 Polyfill)
+const getApiKey = () => {
+  try {
+    if (typeof process !== 'undefined' && process.env?.API_KEY) {
+      return process.env.API_KEY;
+    }
+    // Fallback for browser environment where process might not be in global scope directly
+    return (window as any).process?.env?.API_KEY || '';
+  } catch (e) {
+    return '';
+  }
+};
+
+const apiKey = getApiKey();
+const ai = new GoogleGenAI({ apiKey });
 
 export const parseEmailContent = async (emailText: string): Promise<AIExtractionResponse> => {
+  if (!apiKey) {
+    throw new Error("API Key 尚未設定。請確認部署環境變數。");
+  }
+
   try {
     const today = new Date().toISOString().split('T')[0];
     

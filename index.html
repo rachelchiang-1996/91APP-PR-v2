@@ -11,6 +11,18 @@
     <style>
       body { font-family: 'Inter', sans-serif; }
     </style>
+    <!-- 
+      Polyfill for process.env
+      這段確保在瀏覽器環境中 process.env 存在，防止應用程式因找不到變數而崩潰。
+    -->
+    <script>
+      window.process = {
+        env: {
+          NODE_ENV: 'production',
+          API_KEY: '' // 注意：在靜態部署時，您需要在此處或透過 CI/CD 填入 API Key，否則 AI 功能將無法使用
+        }
+      };
+    </script>
   <script type="importmap">
 {
   "imports": {
