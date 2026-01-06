@@ -2,14 +2,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIExtractionResponse, AuthMethod, RelationshipType, ContentType } from "../types";
 
-// 在瀏覽器環境中安全地獲取 API Key
-// 我們優先嘗試 process.env (Node/Build環境)，如果失敗則嘗試 window.process (瀏覽器 Polyfill)
+// 取得 API Key 的邏輯
 const getApiKey = () => {
   try {
-    if (typeof process !== 'undefined' && process.env?.API_KEY) {
-      return process.env.API_KEY;
-    }
-    // Fallback for browser environment where process might not be in global scope directly
+    // 1. 嘗試讀取 process.env.API_KEY
+    // 在 Vite 建置時，這裡會被自動替換成 Vercel 設定的環境變數值 (例如 "AIza...")
+    // @ts-ignore
+    const key = process.env.API_KEY;
+    if (key) return key;
+  } catch (e) {
+    // 忽略錯誤
+  }
+
+  // 2. Fallback: 嘗試讀取 window.process (用於本地開發或舊設定)
+  try {
     return (window as any).process?.env?.API_KEY || '';
   } catch (e) {
     return '';
@@ -17,17 +23,22 @@ const getApiKey = () => {
 };
 
 const apiKey = getApiKey();
-const ai = new GoogleGenAI({ apiKey });
+// 初始化時若無 Key 先用假值避免崩潰，但在呼叫 generateContent 時會檢查
+const ai = new GoogleGenAI({ apiKey: apiKey || 'DUMMY_KEY' }); 
 
 export const parseEmailContent = async (emailText: string): Promise<AIExtractionResponse> => {
-  if (!apiKey) {
-    throw new Error("API Key 尚未設定。請確認部署環境變數。");
+  const currentKey = getApiKey();
+  if (!currentKey) {
+    throw new Error("API Key 尚未設定。請在 Vercel 後台 Settings -> Environment Variables 新增 API_KEY。");
   }
+  
+  // 確保使用最新的 Key (以防初始化時是空的)
+  const activeAi = new GoogleGenAI({ apiKey: currentKey });
 
   try {
     const today = new Date().toISOString().split('T')[0];
     
-    const response = await ai.models.generateContent({
+    const response = await activeAi.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `
         Analyze the following email content regarding a 91APP trademark or content licensing request.
