@@ -1,45 +1,18 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIExtractionResponse, AuthMethod, RelationshipType, ContentType } from "../types";
 
-// 取得 API Key 的邏輯
-const getApiKey = () => {
-  try {
-    // 1. 嘗試讀取 process.env.API_KEY
-    // 在 Vite 建置時，這裡會被自動替換成 Vercel 設定的環境變數值 (例如 "AIza...")
-    // @ts-ignore
-    const key = process.env.API_KEY;
-    if (key) return key;
-  } catch (e) {
-    // 忽略錯誤
-  }
-
-  // 2. Fallback: 嘗試讀取 window.process (用於本地開發或舊設定)
-  try {
-    return (window as any).process?.env?.API_KEY || '';
-  } catch (e) {
-    return '';
-  }
-};
-
-const apiKey = getApiKey();
-// 初始化時若無 Key 先用假值避免崩潰，但在呼叫 generateContent 時會檢查
-const ai = new GoogleGenAI({ apiKey: apiKey || 'DUMMY_KEY' }); 
+// Initialize the Gemini API client using the API key from environment variables.
+// As per guidelines, we assume process.env.API_KEY is available.
+// @ts-ignore
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const parseEmailContent = async (emailText: string): Promise<AIExtractionResponse> => {
-  const currentKey = getApiKey();
-  if (!currentKey) {
-    throw new Error("API Key 尚未設定。請在 Vercel 後台 Settings -> Environment Variables 新增 API_KEY。");
-  }
-  
-  // 確保使用最新的 Key (以防初始化時是空的)
-  const activeAi = new GoogleGenAI({ apiKey: currentKey });
-
   try {
     const today = new Date().toISOString().split('T')[0];
     
-    const response = await activeAi.models.generateContent({
-      model: "gemini-2.5-flash",
+    // Use gemini-3-flash-preview for text analysis tasks as recommended in guidelines.
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
       contents: `
         Analyze the following email content regarding a 91APP trademark or content licensing request.
         Extract the relevant information into a structured JSON.

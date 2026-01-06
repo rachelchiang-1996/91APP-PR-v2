@@ -1,0 +1,5 @@
+
+/* Reverted to simple CSS since we are using Tailwind CDN */
+body {
+  font-family: 'Inter', sans-serif;
+}
